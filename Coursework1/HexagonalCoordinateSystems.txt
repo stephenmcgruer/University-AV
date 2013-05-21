@@ -1,0 +1,325 @@
+''(Note to the marker: My topic, Hexagonal Coordinate Systems, is technically a mathematical issue with a practical application in Computer Vision. Since the course is about vision, I have chosen to keep this page primarily focused around that. In a real article it would be preferable to keep the main page solely for mathematical definitions, and have it's use in vision processing as another page.)''
+
+
+<big>'''Hexagonal Coordinate Systems'''</big>
+
+A hexagonal coordinate system is formed by placing a [[hexagonal lattice]] over a 2D plane, forming a coordinate system where each hexagon (or 'tile') can be uniquely specified in some manner. Although the coordinate system can be continuous, the discrete case is more common in [[computer vision|vision processing]] and [[computer games]] where a hexagon usually represents a pixel or map space respectively. The main advantages of hexagonal coordinates over the traditional Cartesian approach are the consistent distance between a hexagon and all of it’s neighbours, and the ability of hexagons to neatly represent natural shapes such as curves.
+
+== History ==
+
+The use of hexagonal coordinate systems in vision processing first occurred in 1963{{citation needed}}, in the Illinois Pattern Recognition Computer<ref>McCormick, Bruce H. ''The Illinois Pattern Recognition Computer - ILLIAC III''. IEEE Transactions on Electronic Computers, 1963.</ref>, where they were referred to as rhombic arrays. However it was not until 1969 that the first work directly relating to hexagonal coordinate systems was published, on the potential benefits of a hexagonal representation of data for pattern matching<ref>Golay, Marcel J. E. ''Hexagonal Parallel Pattern Transformations''. IEEE Transactions on Computers, 1969.</ref>. Since then, hexagonal coordinate systems have surfaced multiple times in academic work, but have never obtained widespread popularity.
+
+== Definitions and Conventions ==
+
+=== Conventions ===
+
+By convention, tiles in hexagonal coordinate systems are laid out horizontally, along the x-axis. Aligning vertically along the y-axis is sometimes used; most of the definitions and formulae laid out on this page can be adapted to a vertically-aligned system by simply swapping axis parameters. Other alignments are rare, as they complicate most of the mathematics involved in hexagonal coordinate systems.
+
+=== Indexing a Hexagonal Coordinate System ===
+
+[[File:Hexagonal_Coordinates_ZigZag_Columns.svg|thumb|250px|alt=TODO|The effect of transforming the 'zig-zag' axis to a straight axis. Note how the transformation partitions the coordinate system in two.]]
+
+Due to the popular nature of traditional rectangular coordinate systems, a natural approach when defining a hexagonal coordinate system is to attempt to use an orthogonal set of axes. As having truly orthogonal axes is obviously impossible, a zig-zag column approach is often suggested, where the y-axis alternates direction on each vertical row of tiles. This approach is inherently problematic, as can be seen by transforming the y-axis to a straight line. Examining the effect of this transformation on the super-hexagon triangles, we find that using an approximated y-axis splits the coordinate system into two partitions, based on alternating rows. This complicates geometric calculations, as they must take into account the two partitions. For example, distance calculations become iterative as the two ‘shortest’ paths between the start and end point (in terms of the number of tiles passed through) are not the same length in the coordinate system - the calculation must check which row it is in at each iteration and 'move' accordingly.
+
+[[File:Hexagonal_Coordinates_Skewed_Columns.svg|thumb|250px|alt=TODO|The effect of transforming the skewed-axis to a straight axis.]]
+
+A better approach for indexing hexagonal coordinate system can be found by altering the traditional view of the y-axis to suit hexagonal tiles. We define the y-axis to be ‘skewed’, rotated 60° from the x-axis. This viewpoint is 'straight' in terms of hexagonal coordinates, as each axis runs through the centre of an edge of the hexagon. Transforming the y-axis back to the traditional viewpoint, as we did before, shows that the super-hexagon triangles are now uniformly represented in the skewed-axis system.
+
+Another approach for indexing hexagonal coordinate systems uses the hexagon’s axes of symmetry, giving three trigonal axes. By convention these are referred to as the x-, y- and z-axes, although it is important to realise that they are distinct from the normal three-dimensional use of these names - the coordinate system still only indexes into a two-dimensional plane. As only two of the three coordinates are required to uniquely specify any hexagon in the coordinate system, one coordinate is redundant; however the use of all three coordinates allows the easy calculation of distances and other geometric functions. Converting between the skewed-axis approach and the three-coordinate approach is straightforward - we simply identify the redundant coordinate and remove it, renaming and shifting the other axes as appropriate.
+
+A final and rather unusual representation for a hexagonal coordinate system is to represent it as a layered system. The layered system is defined recursively, as each layer is composed of a number of tiles from the layer below it. A layer 0 tile is a single hexagon. A layer {{math|''L''}} tile is composed of a layer {{math|''L-1''}} tile and it’s 6 neighbouring tiles. That is, a layer 1 tile is a collection of seven hexagons, a layer 2 tile is a collection of seven layer 1 tiles, and so on. This approach is common in vision processing due to its efficient use of space. There are {{math|7<sup>L</sup>}} tiles in an {{math|''L''}} layer system, and each hexagon in the system can be indexed using an {{math|''L''}}-digit, base 7 number. Starting from the global tile, each digit in an index represents which sub-tile the hexagon belongs to, starting at 0 in the centre and then proceeding from 1 to 6 around the centre tile. For example, consider the hexagon indexed by {{math|24<sub>7</sub>}}. The first digit, 2, indicates that the hexagon is in the second location of the layer 1 tile, and the last digit, 4, indicates that the hexagon is in the fourth location of the layer 0 tile. As each hexagon is just a number, an image can be stored as a one-dimensional vector. A hexagonal image of L layers with 24-bit colour requires {{math|3 x 7<sup>L</sup>}} bytes. If the hexagonal image was created from a {{math|''M'' x ''N''}} square image with {{math|''M'' {{=}} ''N'' {{=}} 2<sup>m</sup>}}, we can calculate the required number of layers as
+
+:<math>L = m\frac{2 log 2}{log 7} \approx 0.71m.</math>
+
+Aside from its efficient use of space, the hierarchical layering approach also allows efficient execution of some visual processing algorithms.
+
+=== Extension to N Dimensions ===
+
+As a planar shape, hexagons cannot be represented in three or more dimensions. Therefore, unlike Cartesian or planar coordinate systems, there is no straightforward extension of hexagonal coordinate systems to higher dimensions.
+
+== Reasons and Issues ==
+
+=== Advantages for Vision Processing ===
+
+As stated above, the main reasons for using a hexagonal coordinate system for image processing are hexagons' consistent connection with their neighbours and the ease of representing natural shapes using hexagons. In a normal square-pixel system, a pixel’s neighbours have two different levels of connectivity - they are either 1 pixel away, or <math>\scriptstyle \sqrt{2}</math> pixels. This means that algorithms based on neighbourhood searches either have to ignore this distinction (and lose information) or cope with it somehow (causing increased complexity). Using a hexagonal coordinate system means that each neighbour is exactly 1 pixel away, and so algorithms can treat them all the same. The natural representation of curves in hexagonal coordinate systems allows many visual operations to be performed more easily; examples of edge detection and shape extraction are given below.
+
+In addition to the above, hexagonal lattices also more closely resemble the pattern of photo-receptors in the human eye than square lattices. This means that they may be used when attempting to simulate the visual information provided by the eye to the brain and some of the visual processing performed by the brain on image data, such as simulating saccading<ref>Middleton, Lee; Coghill, George; and Sivaswamy, Jayanthi. ''Saccadic Exploration using a Hexagonal Retina''. Proceedings of the International ICSC Congress on Intelligent Systems and Applications, 2000.</ref>.
+
+=== Possible Issues ===
+
+Despite their advantages, hexagonal coordinate systems are not commonly used in vision processing outside of academic work. A number of reasons have been suggested for the lack of uptake. Firstly, people often find thinking in hexagonal space difficult compared to traditional Cartesian systems, and so are less inclined to use hexagonal coordinate systems. Whether or not this is a real difficulty, or simply something one has to 'get used to' is debated, but in either case it reduces the likelihood of people choosing to use a hexagonal representation of data. 
+
+The lack of hardware devices (both input and output) that directly support hexagonal coordinate systems is also an issue. Input images must be converted from a square lattice to a hexagonal one. This may either be done by extrapolation, in which case the resolution of the image is artificially lowered, or by capturing the image at a higher resolution than it will be processed at, which is wasteful. Once the processing has been complete the output image must then be represented on or converted back to a square lattice somehow, which collapses pixels and thus results in a lower output resolution.
+
+== Image Conversion ==
+
+=== Square to Hexagonal ===
+
+As hardware devices that can directly capture images onto a hexagonal lattice are rare, images usually have to be converted from a square lattice to a hexagonal one. This process is known as ''image re-sampling''. The conversion method depends on how the hexagonal coordinate system is indexed; as we can easily convert between the skewed-axis and 3-coordinate representations, only the skewed-axis method will be shown
+
+[[File:Hexagonal_tile_distance_to_edge_and_corner.svg|thumb|180px|alt=A hexagon with the distance from the centre to the middle of one edge, and from the centre to a corner shown.|An example hexagon showing the distances from the centre to it's edges and corners.]]
+
+To convert points from a Cartesian coordinate system to a hexagonal system, we must transform the points into hexagonal space, map them to a square lattice, and then convert the square lattice to the hexagonal one. For convenience we define two constants: {{math|''r''}} is the shortest distance from the centre of a hexagon to an edge, and {{math|''s''}} is the distance from the centre of a hexagon to a corner.
+
+Two matrices are used to transform the Cartesian coordinates to hexagonal space, one for each hexagonal axis. For each axis we must describe an [[affine transformation]] from the hexagonal lattice to the square lattice. Starting with the x-axis, we can examine one possible affine transformation such that every point in a square corresponds to the same x-coordinate in hexagonal space:
+
+
+:[[File:Cartesian_to_hexagonal_x_affine_transformation.svg|350px|alt=TODO]]
+
+
+We now need to define the transformation matrix
+
+: <math>M = \begin{bmatrix}A & B \\ C & D\end{bmatrix},</math>
+
+such that {{math|''Mp''<sub>h</sub> {{=}} ''p''<sub>s</sub>}}, where {{math|''p''<sub>h</sub>}} is a point in the hexagonal lattice and {{math|''p''<sub>s</sub>}} is a point in the square lattice. Consider two points in the square lattice: {{math|''(1,0)''}} and {{math|''(0,1)''}}. These correspond to the points {{math|''(0, -s)''}} and {{math|''(r,s/2)''}} in the hexagonal lattice. Therefore, we can form four linear equations:
+
+
+:<math>\begin{alignat}{9}
+A &&\; * &&\; 0 &&\; + &&\; B &&\; * \;&& -s            &&\; = \;&& 1 & \\
+C &&\; * &&\; 0 &&\; + &&\; D &&\; * \;&& -s            &&\; = \;&& 0 & \\
+A &&\; * &&\; r &&\; + &&\; B &&\; * &&\; \tfrac{s}{2}  &&\; = \;&& 0 & \\
+C &&\; * &&\; r &&\; + &&\; D &&\; * &&\; \tfrac{s}{2}  &&\; = \;&& 1 &
+\end{alignat}</math>
+
+
+Solving this system gives us <math>\textstyle A = \frac{1}{2r}</math>, <math>\textstyle B = -\frac{1}{s}</math>, <math>\textstyle C = \frac{1}{r}</math>, and <math>\textstyle D = 0 </math>. Now we compute the hexagonal x-coordinate. This is calculated as
+
+
+:<math>x_{hex} = \frac{x_s + y_s + n}{w},</math>
+
+
+where {{math|''(x''<sub>s</sub>, ''y''<sub>s</sub>'')''}} is the transformed point, {{math|''n''}} is the offset needed to map the correct points to {{math|''x'' {{=}} 0}} (in the above example we want {{math|''(-2,0)''}}, {{math|''(-1,0)''}} and {{math|''(0,0)''}} to all map to hex coordinate {{math|''x'' {{=}} 0}}, so {{math|''n'' {{=}} 2}}), and {{math|''w''}} is the 'width' or number of squares wide that a transformed hexagon is.
+
+We now use a similar method for the y-axis. Another affine transformation is examined, such that every point in a square corresponds to the same y-coordinate in hexagonal space.
+
+
+:[[File:Cartesian_to_hexagonal_y_affine_transformation.svg|350px|alt=TODO]]
+
+
+Under this transformation the points {{math|''(1,0)''}} and {{math|''(0,1)''}} in the square lattice correspond to the hexagonal coordinates {{math|''(r, s/2)''}} and {{math|''(-r, s/2)''}} respectively. Again we form four linear equations:
+
+
+:<math>\begin{alignat}{9}
+A &&\; * &&\; r  &&\; + &&\; B &&\; * \;&& \tfrac{s}{2}  &&\; = \;&& 1 & \\
+C &&\; * &&\; r  &&\; + &&\; D &&\; * \;&& \tfrac{s}{2}  &&\; = \;&& 0 & \\
+A &&\; * &&\; -r &&\; + &&\; B &&\; * &&\; \tfrac{s}{2}  &&\; = \;&& 0 & \\
+C &&\; * &&\; -r &&\; + &&\; D &&\; * &&\; \tfrac{s}{2}  &&\; = \;&& 1 &
+\end{alignat}</math>
+
+
+Solving this system gives us <math>\textstyle A = \frac{1}{2r}</math>, <math>\textstyle B = -\frac{1}{s}</math>, <math>\textstyle C = -\frac{1}{r}</math>, and <math>\textstyle D = \frac{1}{s}</math>. Finally we compute the hexagonal y-coordinate. This is identical to before:
+
+
+<math>y_{hex} = \frac{x_s + y_s + n}{w}.</math>
+
+
+The values of {{math|''r''}} and {{math|''s''}} depend on the chosen mapping scale between the square and hexagonal lattice. Common values are <math>\textstyle r = \frac{1}{2}</math> and <math>\textstyle s = \sqrt{3}</math>. These give the basis functions
+
+
+:<math>\displaystyle b_1 = (1,0)</math> 
+:<math>b_2 = (\frac{1}{2}, \frac{\sqrt{3}}{2})</math>
+
+
+Note that these basis vectors mean that the horizontal scale is fixed between the square and hexagonal lattice, but that the 'vertical' scale is not independent of the horizontal and so results in a tighter packing. 
+
+Once the image has been converted, the hexagonal lattice is often represented using the layered approach (described above) in order to make visual processing easier. The conversion to a layered indexing system is a simple bottom-up sweep: we define the origin tile {{math|0<sub>7</sub>}} and then walk our way up the system, recursively backtracking down to define new tiles.
+
+=== Hexagonal to Square ===
+
+As most output devices are based on a square lattice rather than a hexagonal one, displaying a hexagonal-based image requires us to simulate a hexagonal coordinate system using the square lattice. This is a two-step procedure: first we must convert the hexagonal coordinates to Cartesian ones, then we must simulate each hexagonal pixel using a suitable set of square pixels.
+
+Assuming that the image is stored using the layered approach described above, each hexagon is represented as an n-digit number in base 7:
+
+:<math>d_{n}d_{n-1}...d_{0}.</math>
+
+Each digit, starting from {{math|''d''<sub>0</sub>}}, indicates an increase in distance from the origin, which can be seen by examining the sequence {{{math|1<sub>7</sub>}}, {{math|10<sub>7</sub>}}, {{math|100<sub>7</sub>}}, ...}. As the hexagonal x-axis maps exactly to the Cartesian one, we can convert each of these points directly to Cartesian coordinates, getting
+
+:<math>1_{7} \rightarrow R\begin{bmatrix}1 \\ 0\end{bmatrix},\; 10_{7} \rightarrow R\begin{bmatrix}2 \\ \sqrt{3}\end{bmatrix},\;100_{7} \rightarrow R\begin{bmatrix}1 \\ 4\sqrt{3}\end{bmatrix}, ...,</math>
+
+where {{math|''R''}} is determined by the inter-pixel spacing. Using these vectors we can convert any hexagonal location to a Cartesian one, by rotating each vector (using a standard Cartesian rotation matrix) depending on the location of the referenced tile relative to the centre tile. The rotation values are:
+
+{| class="wikitable" style="text-align: center;"
+|-
+! scope="col" width="50" | d<sub>i</sub>
+! scope="col" width="50" | Rotation
+|-
+| 1 || 0
+|-
+| 2 || <math>\frac{5\pi}{3}</math>
+|-
+| 3 || <math>\frac{4\pi}{3}</math>
+|-
+| 4 || <math>\pi</math>
+|-
+| 5 || <math>\frac{2\pi}{3}</math>
+|-
+| 6 || <math>\frac{\pi}{3}</math>
+|}
+
+As an example, the hexagon {{math|32<sub>7</sub>}} can be converted to Cartesian coordinates by first converting {{math|2<sub>7</sub>}}:
+
+:<math>2_{7} \rightarrow \begin{bmatrix}cos(\frac{5\pi}{3}) & sin(\frac{5\pi}{3}) \\ -sin(\frac{5\pi}{3}) & cos(\frac{5\pi}{3})\end{bmatrix}\begin{bmatrix}1 \\ 0\end{bmatrix} = \begin{bmatrix}\frac{1}{2} & -\frac{\sqrt{3}}{2} \\ \frac{\sqrt{3}}{2} & \frac{1}{2}\end{bmatrix}\begin{bmatrix}1 \\ 0\end{bmatrix} = \begin{bmatrix}\frac{1}{2} \\ \frac{\sqrt{3}}{2}\end{bmatrix},</math>
+
+and then converting {{math|30<sub>7</sub>}}:
+
+:<math>30_{7} \rightarrow \begin{bmatrix}cos(\frac{4\pi}{3}) & sin(\frac{4\pi}{3}) \\ -sin(\frac{4\pi}{3}) & cos(\frac{4\pi}{3})\end{bmatrix}\begin{bmatrix}2 \\ \sqrt{3}\end{bmatrix} = \begin{bmatrix}-\frac{1}{2} & -\frac{\sqrt{3}}{2} \\ \frac{\sqrt{3}}{2} & -\frac{1}{2}\end{bmatrix}\begin{bmatrix}2 \\ \sqrt{3}\end{bmatrix} = \begin{bmatrix}-\frac{5}{2} \\ \frac{\sqrt{3}}{2}\end{bmatrix}.</math>
+
+Combining the two values gives a final result of
+
+:<math>32_{7} \rightarrow \begin{bmatrix}\frac{1}{2} \\ \frac{\sqrt{3}}{2}\end{bmatrix} + \begin{bmatrix}-\frac{5}{2} \\ \frac{\sqrt{3}}{2}\end{bmatrix} = \begin{bmatrix}-2 \\ \sqrt{3}\end{bmatrix}.</math>
+
+Once the image has been converted to Cartesian coordinates, each point must now be displayed as a hexagon on the screen. There are two constraints to consider - we must attempt to simulate a hexagon as exactly as possible, and we must tile the plane exactly. As each hexagonal pixel spans multiple real pixels, they are referred to as ''hyper-pixels''. There are many possible representations for a hexagonal hyper-pixel, but one possible choice is:
+
+[[File:Hexagonal_hyper_pixel.svg|200px]]
+
+Note that a natural consequence of this approach is that the hexagonal resolution is far less than the display's true resolution, meaning we need a denser screen resolution than we wish to display at.
+
+== Geometric Transformations ==
+
+As with any coordinate system, common geometric transformations can be implemented on hexagonal coordinate systems. These are most easily shown when using a 3-coordinate representation, as their form is then similar to 3-dimensional Cartesian transformation matrices. In the following section, we will use the convention that the x-axis points 30\degrees clockwise from 'right' (meaning that the y-axis points directly 'up', and the z-axis is rotated 150\degrees clockwise from right.) As is common when dealing with transformation matrices homogeneous coordinates are used to allow transformation chaining. This means that the general form of a transformation is
+
+:<math>(x', y', z', 1) = (x, y, z, 1)\begin{bmatrix}a_{11} & a_{12} & a_{13} & 0 \\ a_{21} & a_{22} & a_{23} & 0 \\ a_{31} & a_{32} & a_{33} & 0 \\ a_{41} & a_{42} & a_{43} & 1\end{bmatrix}.</math>
+
+Some important properties to note are that:
+
+* <math>\displaystyle A(0) = I</math>
+* <math>\displaystyle A(\alpha)A^{-1}(\alpha) = A^{-1}(\alpha)A(\alpha) = I</math>
+* Transformation matrices are not necessarily unique - some transformations have multiple representations. For example, a rotation of 60° in hexagonal space has three representations:
+
+
+::<math>\begin{bmatrix}\frac{2}{3} & \frac{2}{3} & -\frac{1}{3} & 0 \\ -\frac{1}{3} & \frac{2}{3} & \frac{2}{3} & 0 \\ \frac{2}{3} & -\frac{1}{3} & \frac{2}{3} & 0 \\ 0 & 0 & 0 & 1\end{bmatrix} \equiv \begin{bmatrix}1 & 1 & 0 & 0 \\ 0 & 1 & 1 & 0 \\ 1 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix} \equiv \begin{bmatrix}0 & 0 & -1 & 0 \\ -1 & 0 & 0 & 0 \\ 0 & -1 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}.</math>
+
+=== Translation ===
+
+Translation in a hexagonal coordinate system is similar to the 3-dimensional Cartesian case. The translation matrix is given by
+
+:<math>T(\triangle x, \triangle y, \triangle z) = \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ \triangle x & \triangle y & \triangle z & 1\end{bmatrix}</math>
+
+Unlike the Cartesian case, however, hexagonal translation has the constraint that the coordinate deltas must sum to 0:
+
+:<math>\triangle x + \triangle y + \triangle z = 0</math>
+
+For example, the translation matrix to move one hexagon 'right' is
+
+:<math>T(1, 0, -1) = \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 1 & 0 & -1 & 1\end{bmatrix}</math>
+
+We can see that <math>\textstyle 1 + 0 + -1 = 0</math>, and if we apply this to the point {{math|(5,1,2)}} we get
+
+
+:<math>(5, 1, 2, 1)T(1, 0, -1) = (5, 1, 2, 1)\begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 1 & 0 & -1 & 1\end{bmatrix} = (6, 1, 1, 1),</math>
+
+giving us the (correct) output point {{math|(6, 1, 1)}}.
+
+=== Reflection ===
+
+[[File:Hexagonal_reflection_axes.svg|thumb|A point P illustrates the set of reflection axes for a hexagonal coordinate system and the respective reflection matrices.]]
+
+As a hexagonal lattice has 12-fold symmetry<ref>Her, Innchyn. ''Geometric Transformations on the Hexagonal Grid''. IEEE Transactions On Image Processing, 1995.</ref>, we can examine any point placed on a circle centred at the origin and find that it has 12 reflection points on that circle. These 12 points give the basic reflection matrices for hexagonal coordinate systems (with the point itself being given by the identity matrix, {{math|''I''}}.) The matrices are:
+
+
+:<math>\begin{alignat}{6}
+F_{x} = &&\; \begin{bmatrix}-1 & 0 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ 0 & -1 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{y} = &&\; \begin{bmatrix}0 & 0 & -1 & 0 \\ 0 & -1 & 0 & 0 \\ -1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{z} = &&\; \begin{bmatrix}0 & -1 & 0 & 0 \\ -1 & 0 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, & \\
+F_{xy} = &&\; \begin{bmatrix}0 & 1 & 0 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{yz} = &&\; \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{zx} = &&\; \begin{bmatrix}0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, & \\
+F_{x}F_{xy} = &&\; \begin{bmatrix}0 & -1 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ -1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{x}F_{y} = &&\; \begin{bmatrix}0 & 0 & 1 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{x}F_{yz} = &&\; \begin{bmatrix}-1 & 0 & 0 & 0 \\ 0 & -1 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, & \\
+F_{x}F_{z} = &&\; \begin{bmatrix}0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\;
+F_{x}F_{zx} = &&\; \begin{bmatrix}0 & 0 & -1 & 0 \\ -1 & 0 & 0 & 0 \\ 0 & -1 & 0 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, &&\; &
+\end{alignat}</math>
+
+
+More complex reflections about an arbitrary line can be achieved by combining a basic reflection with other transformation matrices<ref>Foley, J. D., van Dam, A., Feiner, A.K., and Hughes, J. F. ''Computer Graphics: Principles and Practice''. Addison-Wesley, 1990.</ref>.
+
+=== Scaling ===
+
+As with reflection, scaling is usually more complicated in hexagonal space, as the coordinates are not independent. Uniform scaling is simple as it scales each coordinate together, and is given by
+
+:<math>S(\alpha) = \begin{bmatrix}\alpha & 0 & 0 & 0 \\ 0 & \alpha & 0 & 0 \\ 0 & 0 & \alpha & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}.</math>
+
+Otherwise, we can consider 6 types of scaling - 3 along each axis, and 3 along opposing pairs of edges. Consider scaling along the x-axis by a factor {{math|&alpha;}}, where the x-value will not change. Therefore,
+
+:<math>x = x',</math>
+
+and as such
+
+:<math>y' + z' = y + z.</math> 
+
+Since {{math|''y'' - ''z''}} changes with respect to the scaling factor, we have
+
+:<math>y' - z' = \alpha(y - z).</math>
+
+Solving these equations give us the matrix for the {{math|''S''<sub>x</sub>}} case below, and the {{math|''S''<sub>y</sub>}} and {{math|''S''<sub>z</sub>}} matrices are found similarly. For the other cases, consider where we are scaling along the {{math|''x'' {{=}} ''y''}} line. This means that {{math|''x'' - ''y''}} doesnt change, i.e. 
+
+:<math>x' - y' = x - y.</math>
+
+The value of {{math|''z''}} changes with respect to {{math|&alpha;}}, so we have
+
+:<math>z' = \alpha z.</math>
+
+Solving these equations gives us the matrix for the {{math|''S''<sub>xy</sub>}} case below, and {{math|''S''<sub>yz</sub>}} and {{math|''S''<sub>zx</sub>}} are found similarly.
+
+
+:<math>\begin{alignat}{3}
+S_{x}(\alpha) = \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & \frac{1 + \alpha}{2} & \frac{1 - \alpha}{2} & 0 \\ 0 & \frac{1 - \alpha}{2} & \frac{1 + \alpha}{2} & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, && S_{y}(\alpha) = \begin{bmatrix}\frac{1 + \alpha}{2} & 0 & \frac{1 - \alpha}{2} & 0 \\ 0 & 1 & 0 & 0 \\ \frac{1 - \alpha}{2} & 0 & \frac{1 + \alpha}{2} & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, && S_{z}(\alpha) = \begin{bmatrix}\frac{1 + \alpha}{2} & \frac{1 - \alpha}{2} & 0 & 0 \\ \frac{1 - \alpha}{2} & \frac{1 + \alpha}{2} & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, & \\
+S_{xy}(\alpha) = \begin{bmatrix}\frac{\alpha + 1}{2} & \frac{\alpha - 1}{2} & 0 & 0 \\ \frac{\alpha - 1}{2} & \frac{\alpha + 1}{2} & 0 & 0 \\ 0 & 0 & \alpha & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, && S_{yz}(\alpha) = \begin{bmatrix} \alpha & 0 & 0 & 0 \\ 0 & \frac{\alpha + 1}{2} & \frac{\alpha - 1}{2} & 0 \\ 0 & \frac{\alpha - 1}{2} & \frac{\alpha + 1}{2} & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}, && S_{zx}(\alpha) = \begin{bmatrix} \frac{\alpha + 1}{2} & 0 & \frac{\alpha - 1}{2} & 0 \\ 0 & \alpha & 0 & 0 \\ \frac{\alpha - 1}{2} & 0 & \frac{\alpha + 1}{2} & 0 \\ 0 & 0 & 0 & 1\end{bmatrix}. &
+\end{alignat}</math>
+
+=== Rotation ===
+
+Rotation is also very complicated. E.g. ow, my head. >_<
+
+== Applications ==
+
+=== Edge Detection ===
+
+Edge detection is a common technique in visual processing. The general assumption that we make is that edges are indicated by changes in intensity. Large changes are easy to spot, and can be detected through techniques like the [[prewitt operator]], while subtle changes require [[laplacian]] operators or the [[canny edge detector]] operator. Somebody<ref>LOL</ref> examined the use of hexagonal coordinate systems on each of these three techniques for edge detection, comparing them to traditional square lattices. In general the hexagonal systems detect approximately the same number of edge pixels, but choose qualitatively 'better' pixels which more accurately represent the edges. As would be expected, hexagonal lattice edge-detection performs better on natural curves.
+
+'''Prewitt'''
+
+First there is a description here, including the fact that it uses an edge mask. Importantly, the Prewitt operator treats all of a pixel's neighbours the same, thus ignoring information if performed on a square lattice. A hexagonal coordinate system means that all neighbours are equi-distant from a hexagon, so it is safe to treat them all the same. To convert the Prewitt operator to a hexagonal lattice requires the definition of new masks. The normal vertical mask is approximated by the combination of two masks that are formed 60\degree and 120\degree from the horizontal axis, while the horizontal axis is the same as in the square lattice case. The masks are:
+
+:<math>h_1 = \begin{bmatrix}1 & 1 \\ 0 & 0 & 0 \\ -1 & -1\end{bmatrix},\; 
+h_2 = \begin{bmatrix}0 & 1 \\ -1 & 0 & 1 \\ -1 & 0\end{bmatrix},\;
+h_3 = \begin{bmatrix}-1 & 0 \\ -1 & 0 & 1 \\ 0 & 1\end{bmatrix}</math>
+
+
+Note that {{math|''h''<sub>1</sub> {{=}} ''h''<sub>2</sub> - ''h''<sub>3</sub>}}, so we dont need to store all three.
+
+'''Laplace of Gaussian'''
+
+Some stuff here. Less changes needed because isotropic.
+
+'''Canny'''
+
+Some stuff here. Uses 2 gaussians. Again little change needed.
+
+=== Shape Extraction ===
+
+We often want to extract shapes (squares, etc, or more natural structures) from images. Shapes are defined by 'dominent' edges. Somebody used saccading based on hexagons to mimic the ways eyes do shape extraction with good results.
+
+Used a hexagonal 'attention window'. Extracts features (weight and orientation), use to decide where to move the window next. The hexagonal attention window better capture curves:
+
+IMAGE
+
+Again good at corners, not at sharp corners.
+
+IMAGE
+
+== See Also ==
+*[[Hexagonal lattice]]
+*[[Hexagonal tiling]]
+*[[Hex map]], for the use of hexagonal coordinate systems in games.
+
+== References ==
+{{reflist}}
+
+== External Links ==
+
+<!--- Categories --->
+[[Category:Computer vision]]
+[[Category:Applications of computer vision]]
+[[Category:Image processing]]
